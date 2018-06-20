@@ -475,6 +475,7 @@ class State(object):
 		("float",): ctypes.c_float,
 		("double",): ctypes.c_double,
 		("long", "double"): ctypes.c_longdouble,
+		("bool",): ctypes.c_bool,
 	}
 	StdIntTypes = {
 		"uint8_t": ctypes.c_uint8,
