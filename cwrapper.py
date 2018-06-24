@@ -5,6 +5,7 @@
 import cparser
 import ctypes
 import sys
+import six
 if sys.version_info.major == 2:
     from cparser_utils import *
 else:
@@ -35,7 +36,7 @@ class CStateDictWrapper:
         for d in self._dicts:
             if k in d: return True
         return False
-    def get(self, k, default = None):
+    def get(self, k, default=None):
         try: return self.__getitem__(k)
         except KeyError: return default
     def has_key(self, k):
@@ -47,7 +48,7 @@ class CStateWrapper:
     __doc__ = """cparser.State wrapper
     Merges multiple cparser.State into a single one."""
 
-    WrappedDicts = ("macros","typedefs","structs","unions","enums","funcs","vars","enumconsts")
+    WrappedDicts = ("macros", "typedefs", "structs", "unions", "enums", "funcs", "vars", "enumconsts")
     LocalAttribs = ("_cwrapper")
     def __init__(self, cwrapper):
         self._cwrapper = cwrapper
@@ -55,7 +56,7 @@ class CStateWrapper:
         if k in self.LocalAttribs: raise AttributeError # normally we shouldn't get here but just in case
         if k == "_errors": return getattr(self._cwrapper, k) # fallthrough to CWrapper to collect all errors there
         if k in self.WrappedDicts:
-            return CStateDictWrapper(dicts = map(lambda s: getattr(s, k), self._cwrapper.stateStructs))
+            return CStateDictWrapper(dicts=map(lambda s: getattr(s, k), self._cwrapper.stateStructs))
 
         # fallback to first stateStruct
         if len(self._cwrapper.stateStructs) == 0:
@@ -75,7 +76,7 @@ class CStateWrapper:
         assert False, "this is not really prepared/intended to be pickled"
 
 def _castArg(value):
-    if isinstance(value, (str,unicode)):
+    if isinstance(value, six.string_types):
         return ctypes.cast(ctypes.c_char_p(value), ctypes.POINTER(ctypes.c_byte))
     return value
 
@@ -96,7 +97,7 @@ class CWrapper:
         class Wrapped(object):
             def __getattribute__(self, attrib):
                 if attrib == "_cwrapper": return selfWrapper
-                if attrib in ("__dict__","__class__"):
+                if attrib in ("__dict__", "__class__"):
                     return object.__getattribute__(self, attrib)
                 return selfWrapper.getWrapped(attrib)
         selfWrapper.wrapped = Wrapped()
@@ -127,7 +128,7 @@ class CWrapper:
         if resolvedMacro is not None: self.get(str(resolvedMacro))
         return macro
 
-    def get(self, attrib, resolveMacros = True):
+    def get(self, attrib, resolveMacros=True):
         for stateStruct in self.stateStructs:
             if attrib in stateStruct.macros and stateStruct.macros[attrib].args is None:
                 if resolveMacros: return self.resolveMacro(stateStruct, stateStruct.macros[attrib])
@@ -149,7 +150,7 @@ class CWrapper:
         wrappedStateStruct = self._wrappedStateStruct
         if isinstance(s, cparser.Macro):
             t = s.getCValue(wrappedStateStruct)
-        elif isinstance(s, (cparser.CType,cparser.CTypedef,cparser.CStruct,cparser.CEnum)):
+        elif isinstance(s, (cparser.CType, cparser.CTypedef, cparser.CStruct, cparser.CEnum)):
             t = s.getCType(wrappedStateStruct)
         elif isinstance(s, cparser.CEnumConst):
             t = s.value

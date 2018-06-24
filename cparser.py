@@ -4,13 +4,19 @@
 
 import ctypes, _ctypes
 from inspect import isclass
+import six
+import sys
+if sys.version_info.major == 2:
+    LONG = long
+else:
+    LONG = int
 
 SpaceChars = " \t"
 LowercaseLetterChars = "abcdefghijklmnopqrstuvwxyz"
 LetterChars = LowercaseLetterChars + LowercaseLetterChars.upper()
 NumberChars = "0123456789"
 OpChars = "&|=!+-*/%<>^~?:,."
-LongOps = [c+"=" for c in  "&|=+-*/%<>^~!"] + ["--","++","->","<<",">>","&&","||","<<=",">>=","::",".*","->*"]
+LongOps = [c+"=" for c in "&|=+-*/%<>^~!"] + ["--", "++", "->", "<<", ">>", "&&", "||", "<<=", ">>=", "::", ".*", "->*"]
 OpeningBrackets = "[({"
 ClosingBrackets = "})]"
 
@@ -92,38 +98,38 @@ OpPostfixFuncs = {
 }
 
 OpBinFuncs = {
-    "+": (lambda a,b: a + b),
-    "-": (lambda a,b: a - b),
-    "*": (lambda a,b: a * b),
-    "/": (lambda a,b: a / b),
-    "%": (lambda a,b: a % b),
-    "<<": (lambda a,b: a << b),
-    ">>": (lambda a,b: a >> b),
-    "<": (lambda a,b: a < b),
-    "<=": (lambda a,b: a <= b),
-    ">": (lambda a,b: a > b),
-    ">=": (lambda a,b: a >= b),
-    "==": (lambda a,b: a == b),
-    "!=": (lambda a,b: a != b),
-    "&": (lambda a,b: a & b),
-    "^": (lambda a,b: a ^ b),
-    "|": (lambda a,b: a | b),
-    "&&": (lambda a,b: a and b),
-    "||": (lambda a,b: a or b),
-    ",": (lambda a,b: b),
+    "+": (lambda a, b: a + b),
+    "-": (lambda a, b: a - b),
+    "*": (lambda a, b: a * b),
+    "/": (lambda a, b: a / b),
+    "%": (lambda a, b: a % b),
+    "<<": (lambda a, b: a << b),
+    ">>": (lambda a, b: a >> b),
+    "<": (lambda a, b: a < b),
+    "<=": (lambda a, b: a <= b),
+    ">": (lambda a, b: a > b),
+    ">=": (lambda a, b: a >= b),
+    "==": (lambda a, b: a == b),
+    "!=": (lambda a, b: a != b),
+    "&": (lambda a, b: a & b),
+    "^": (lambda a, b: a ^ b),
+    "|": (lambda a, b: a | b),
+    "&&": (lambda a, b: a and b),
+    "||": (lambda a, b: a or b),
+    ",": (lambda a, b: b),
     # NOTE: These assignment ops don't really behave like maybe expected
     # but they return the somewhat expected.
-    "=": (lambda a,b: b),
-    "+=": (lambda a,b: a + b),
-    "-=": (lambda a,b: a - b),
-    "*=": (lambda a,b: a * b),
-    "/=": (lambda a,b: a / b),
-    "%=": (lambda a,b: a % b),
-    "<<=": (lambda a,b: a << b),
-    ">>=": (lambda a,b: a >> b),
-    "&=": (lambda a,b: a & b),
-    "^=": (lambda a,b: a ^ b),
-    "|=": (lambda a,b: a | b),
+    "=": (lambda a, b: b),
+    "+=": (lambda a, b: a + b),
+    "-=": (lambda a, b: a - b),
+    "*=": (lambda a, b: a * b),
+    "/=": (lambda a, b: a / b),
+    "%=": (lambda a, b: a % b),
+    "<<=": (lambda a, b: a << b),
+    ">>=": (lambda a, b: a >> b),
+    "&=": (lambda a, b: a & b),
+    "^=": (lambda a, b: a ^ b),
+    "|=": (lambda a, b: a | b),
 }
 
 # WARNING: this isn't really complete
@@ -303,7 +309,7 @@ class Macro(object):
         tokens = self._tokens
         assert tokens is not None
 
-        if all([isinstance(t, (CIdentifier,COp)) for t in tokens]):
+        if all([isinstance(t, (CIdentifier, COp)) for t in tokens]):
             t = tuple([t.content for t in tokens])
             if t in stateStruct.CBuiltinTypes:
                 return stateStruct.CBuiltinTypes[t].getCType(stateStruct)
@@ -322,7 +328,7 @@ class Macro(object):
 # either some basic type, another typedef or some complex like CStruct/CUnion/...
 class CType(object):
     def __init__(self, **kwargs):
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             setattr(self, k, v)
     def __repr__(self):
         return self.__class__.__name__ + " " + str(self.__dict__)
@@ -405,12 +411,12 @@ def getCType(t, stateStruct):
     """
     assert not isinstance(t, CUnknownType)
     try:
-        if issubclass(t, (_ctypes._SimpleCData,ctypes._Pointer,ctypes._CFuncPtr)):
+        if issubclass(t, (_ctypes._SimpleCData, ctypes._Pointer, ctypes._CFuncPtr)):
             if stateStruct.IndirectSimpleCTypes:
                 return wrapCTypeClassIfNeeded(t)
             return t
     except Exception: pass # e.g. typeerror or so
-    if isinstance(t, (CStruct,CUnion,CEnum)):
+    if isinstance(t, (CStruct, CUnion, CEnum)):
         if t.body is None:
             # it probably is the pre-declaration. but we might find the real-one
             if isinstance(t, CStruct): D = "structs"
@@ -445,7 +451,7 @@ def isType(t):
     try:
         if issubclass(t, _ctypes._SimpleCData): return True
     except Exception: pass # e.g. typeerror or so
-    if isinstance(t, (CStruct,CUnion,CEnum,CTypedef)): return True
+    if isinstance(t, (CStruct, CUnion, CEnum, CTypedef)): return True
     return False
 
 def getSizeOf(t, stateStruct):
@@ -910,11 +916,11 @@ def cpreprocess_evaluate_cond(stateStruct, condstr):
                             return
                     else:
                         if opstr == "&&":
-                            op = lambda x,y: x and y
+                            op = lambda x, y: x and y
                             # short path check
                             if not lasteval: return lasteval
                         elif opstr == "||":
-                            op = lambda x,y: x or y
+                            op = lambda x, y: x or y
                             # short path check
                             if lasteval: return lasteval
                         elif opstr in OpBinFuncs:
@@ -993,7 +999,7 @@ def cpreprocess_evaluate_cond(stateStruct, condstr):
                 stateStruct.error("internal error in preprocessor evaluation: state " + str(state))
                 return
 
-    if state in (0,10):
+    if state in (0, 10):
         if laststr != "":
             neweval = cpreprocess_evaluate_single(stateStruct, laststr)
             if prefixOp is not None:
@@ -1314,7 +1320,7 @@ class _CBase(object):
     def __init__(self, content=None, rawstr=None, **kwargs):
         self.content = content
         self.rawstr = rawstr
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             setattr(self, k, v)
     def __repr__(self):
         if self.content is None: return "<" + self.__class__.__name__ + ">"
@@ -1331,7 +1337,7 @@ class CStr(_CBase):
     def asCCode(self, indent=""): return indent + '"' + escape_cstr(self.content) + '"'
 class CChar(_CBase):
     def __init__(self, content=None, rawstr=None, **kwargs):
-        if isinstance(content, (unicode,str)): content = ord(content)
+        if isinstance(content, six.string_types): content = ord(content)
         assert isinstance(content, int), "CChar expects int, got " + repr(content)
         assert 0 <= content <= 255, "CChar expects number in range 0-255, got " + str(content)
         _CBase.__init__(self, content, rawstr, **kwargs)
@@ -1356,20 +1362,20 @@ def cpre2_parse_number(stateStruct, s):
     if len(s) > 1 and s[0] == "0" and s[1] in NumberChars:
         try:
             s = s.rstrip("ULul")
-            return long(s, 8)
+            return LONG(s, 8)
         except Exception as e:
             stateStruct.error("cpre2_parse_number: " + s + " looks like octal but got error " + str(e))
             return 0
     if len(s) > 1 and s[0] == "0" and s[1] in "xX":
         try:
             s = s.rstrip("ULul")
-            return long(s, 16)
+            return LONG(s, 16)
         except Exception as e:
             stateStruct.error("cpre2_parse_number: " + s + " looks like hex but got error " + str(e))
             return 0
     try:
         s = s.rstrip("ULul")
-        return long(s)
+        return LONG(s)
     except Exception as e:
         stateStruct.error("cpre2_parse_number: " + s + " cannot be parsed: " + str(e))
         return 0
@@ -1666,7 +1672,7 @@ def make_type_from_typetokens(stateStruct, curCObj, type_tokens):
     elif len(type_tokens) > 1 and type_tokens[-1] == "*":
         t = CPointerType(make_type_from_typetokens(stateStruct, curCObj, type_tokens[:-1]))
     elif len(type_tokens) == 1:
-        assert isinstance(type_tokens[0], (str, unicode))
+        assert isinstance(type_tokens[0], six.string_types)
         t = findObjInNamespace(stateStruct, curCObj, type_tokens[0])
         if not isType(t):
             stateStruct.error("type token is not a type: %s" % t)
@@ -1713,7 +1719,7 @@ class _CBaseWithOptBody(object):
         self.body = None
         self.value = None
         self.parent = None
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
     @classmethod
@@ -1733,7 +1739,7 @@ class _CBaseWithOptBody(object):
         l = []
         if self.attribs: l += [("attribs", self.attribs)]
         if t: l += [("type", t)]
-        for attrName,addCheck,displayName,displayFunc in self.StrOutAttribList:
+        for attrName, addCheck, displayName, displayFunc in self.StrOutAttribList:
             a = getattr(self, attrName)
             if addCheck is None: addCheck = lambda x: x is not None
             if addCheck(a):
@@ -1755,8 +1761,10 @@ class _CBaseWithOptBody(object):
             bool(self.args) or \
             bool(self.arrayargs) or \
             bool(self.body)
+    # for python3
+    __bool__ = __nonzero__
 
-    def finalize(self, stateStruct, addToContent = None):
+    def finalize(self, stateStruct, addToContent=None):
         if self._finalized:
             stateStruct.error("internal error: " + str(self) + " finalized twice")
             return
@@ -1779,7 +1787,7 @@ class _CBaseWithOptBody(object):
             self.body.contentlist.append(obj)
 
     def _copy(self, value, parent=None, name=None, leave_out_attribs=()):
-        if isinstance(value, (int, long, float, str, unicode)) or value is None:
+        if isinstance(value, six.integer_types + (float, )+six.string_types) or value is None:
             return value
         elif isinstance(value, list):
             return [self._copy(v, parent=parent) for v in value]
@@ -2059,14 +2067,14 @@ def minCIntTypeForNums(a, b=None, minBits=32, maxBits=64, useUnsignedTypes=True)
 class CEnum(_CBaseWithOptBody):
     finalize = lambda *args, **kwargs: _finalizeBasicType(*args, dictName="enums", **kwargs)
     def getNumRange(self):
-        a,b = 0,0
+        a, b = 0, 0
         for c in self.body.contentlist:
             assert isinstance(c, CEnumConst)
             if c.value < a: a = c.value
             if c.value > b: b = c.value
-        return a,b
+        return a, b
     def getMinCIntType(self):
-        a,b = self.getNumRange()
+        a, b = self.getNumRange()
         t = minCIntTypeForNums(a, b)
         return t
     def getEnumConst(self, value):
@@ -2107,8 +2115,8 @@ class CEnumConst(_CBaseWithOptBody):
         if self.value is None:
             if self.parent.body.contentlist:
                 last = self.parent.body.contentlist[-1]
-                if isinstance(last.value, (str,unicode)):
-                    self.value = unichr(ord(last.value) + 1)
+                if isinstance(last.value, six.string_types):
+                    self.value = six.unichr(ord(last.value) + 1)
                 else:
                     self.value = last.value + 1
             else:
@@ -2187,7 +2195,7 @@ def getObjInBody(body, name):
 
 def findObjInNamespace(stateStruct, curCObj, name):
     for cobj in _obj_parent_chain(stateStruct, curCObj):
-        if isinstance(cobj.body, (CBody,State)):
+        if isinstance(cobj.body, (CBody, State)):
             obj = getObjInBody(cobj.body, name)
             if obj is not None: return obj
         if isinstance(cobj, CFunc):
@@ -2209,6 +2217,8 @@ class _CStatementCall(_CBaseWithOptBody):
     AutoAddToContent = False
     base = None
     def __nonzero__(self): return self.base is not None
+    # for python3
+    __bool__ = __nonzero__
     def __str__(self):
         s = self.__class__.__name__ + " " + repr(self.base)
         if self.name:
@@ -2262,7 +2272,7 @@ def getConstValue(stateStruct, obj):
     Evaluates the obj, in case it is a expression which can be evaluated at compile time.
     """
     if hasattr(obj, "getConstValue"): return obj.getConstValue(stateStruct)
-    if isinstance(obj, (CNumber,CStr,CChar)):
+    if isinstance(obj, (CNumber, CStr, CChar)):
         return obj.content
     if isinstance(obj, CFuncCall):  # maybe a cast
         t = obj.base
@@ -2289,7 +2299,7 @@ def getValueType(stateStruct, obj):
         base_type = getValueType(stateStruct, obj.base)
         while isinstance(base_type, CTypedef):
             base_type = base_type.type
-        assert isinstance(base_type, (CStruct,CUnion))
+        assert isinstance(base_type, (CStruct, CUnion))
         return base_type.body.vars[obj.name].type
     if isinstance(obj, CPtrAccessRef):
         pbase_type = getValueType(stateStruct, obj.base)
@@ -2299,7 +2309,7 @@ def getValueType(stateStruct, obj):
         base_type = pbase_type.pointerOf
         while isinstance(base_type, CTypedef):
             base_type = base_type.type
-        assert isinstance(base_type, (CStruct,CUnion))
+        assert isinstance(base_type, (CStruct, CUnion))
         if base_type.body is None:
             if isinstance(base_type, CStruct):
                 base_type = stateStruct.structs[base_type.name]
@@ -2325,7 +2335,7 @@ def getValueType(stateStruct, obj):
         base_type = getValueType(stateStruct, obj.base)
         while isinstance(base_type, CTypedef):
             base_type = base_type.type
-        assert isinstance(base_type, (CFuncPointerDecl,CFunc))
+        assert isinstance(base_type, (CFuncPointerDecl, CFunc))
         return base_type.type  # return-type
     if isinstance(obj, CFunc):
         return obj
@@ -2358,11 +2368,11 @@ def getCommonValueType(stateStruct, t1, t2):
     if isclass(t2) and issubclass(t2, ctypes._SimpleCData):
         t2 = getBuiltinTypeForCType(stateStruct, t2)
     if t1 in (ctypes.c_void_p, CPointerType(CVoidType()), CPointerType(CBuiltinType(("void",)))):
-        t1 = CBuiltinType(("void","*"))
+        t1 = CBuiltinType(("void", "*"))
     if t2 in (ctypes.c_void_p, CPointerType(CVoidType()), CPointerType(CBuiltinType(("void",)))):
-        t2 = CBuiltinType(("void","*"))
-    if t1 == CBuiltinType(("void","*")):
-        if t2 == CBuiltinType(("void","*")):
+        t2 = CBuiltinType(("void", "*"))
+    if t1 == CBuiltinType(("void", "*")):
+        if t2 == CBuiltinType(("void", "*")):
             return t1
         if isinstance(t2, (CPointerType, CFuncPointerBase)):
             return t2
@@ -2370,7 +2380,7 @@ def getCommonValueType(stateStruct, t1, t2):
             return CPointerType(t2.arrayOf)
         assert isinstance(t2, (CBuiltinType, CStdIntType))
         return t1
-    if t2 == CBuiltinType(("void","*")):
+    if t2 == CBuiltinType(("void", "*")):
         return getCommonValueType(stateStruct, t2, t1)
     if isinstance(t1, CPointerType):
         if isinstance(t2, CPointerType):
@@ -2533,6 +2543,8 @@ class CStatement(_CBaseWithOptBody):
     _rightexpr = None
     _op = None
     def __nonzero__(self): return bool(self._leftexpr) or bool(self._rightexpr)
+    # for python3
+    __bool__ = __nonzero__
     def __repr__(self):
         s = self.__class__.__name__
         #s += " " + repr(self._tokens) # debug
@@ -2588,7 +2600,7 @@ class CStatement(_CBaseWithOptBody):
         self._handlePushedErrorForUnknown(stateStruct)
         obj = None
         if self._state == 0:
-            if isinstance(token, (CIdentifier,CNumber,CStr,CChar)):
+            if isinstance(token, (CIdentifier, CNumber, CStr, CChar)):
                 if isinstance(token, CIdentifier):
                     if token.content == "struct":
                         self._state = 1
@@ -2625,7 +2637,7 @@ class CStatement(_CBaseWithOptBody):
                 self._state = 8
             else:
                 stateStruct.error("statement parsing: didn't expected token " + str(token))
-        elif self._state in (1,2,3): # struct,union,enum
+        elif self._state in (1, 2, 3): # struct,union,enum
             TName = {1:"struct", 2:"union", 3:"enum"}[self._state]
             DictName = TName + "s"
             if isinstance(token, CIdentifier):
@@ -2677,7 +2689,7 @@ class CStatement(_CBaseWithOptBody):
                         stateStruct.error("statement parsing: identifier %r unknown in state %i" % (token.content, self._state))
                         obj = CUnknownType(name=token.content)
                 self._state = 7
-            elif isinstance(token, (CNumber,CStr,CChar)):
+            elif isinstance(token, (CNumber, CStr, CChar)):
                 obj = token
                 self._state = 7
             else:
@@ -2723,11 +2735,11 @@ class CStatement(_CBaseWithOptBody):
         elif self._state == 8: # right-to-left chain, pull down
             assert isinstance(self._rightexpr, CStatement)
             self._rightexpr._cpre3_handle_token(stateStruct, token)
-            if self._rightexpr._state in (5,7,9):
+            if self._rightexpr._state in (5, 7, 9):
                 self._state = 9
         elif self._state == 9: # right-to-left chain after op + expr
             assert isinstance(self._rightexpr, CStatement)
-            if token in (COp("."),COp("->")):
+            if token in (COp("."), COp("->")):
                 self._rightexpr._cpre3_handle_token(stateStruct, token)
                 self._state = 8
             elif not isinstance(token, COp):
@@ -2766,14 +2778,14 @@ class CStatement(_CBaseWithOptBody):
             self._state = 7
         elif self._state == 20: # after attrib/ptr access
             if isinstance(token, CIdentifier):
-                assert isinstance(self._leftexpr, (CAttribAccessRef,CPtrAccessRef))
+                assert isinstance(self._leftexpr, (CAttribAccessRef, CPtrAccessRef))
                 self._leftexpr.name = token.content
                 self._state = 5
             else:
                 stateStruct.error("statement parsing: didn't expected token " + str(token) + " after " + str(self._leftexpr) + " in state " + str(self._state))
         elif self._state == 22: # after expr + op + expr with attrib/ptr access
             if isinstance(token, CIdentifier):
-                assert isinstance(self._rightexpr, (CAttribAccessRef,CPtrAccessRef))
+                assert isinstance(self._rightexpr, (CAttribAccessRef, CPtrAccessRef))
                 self._rightexpr.name = token.content
                 self._state = 7
             else:
@@ -2781,7 +2793,7 @@ class CStatement(_CBaseWithOptBody):
         elif self._state == 40: # after cast_call((expr) x)
             if self._leftexpr.args[0]._state != 5:  # something is unfinished, like a previous "->"
                 self._leftexpr.args[0]._cpre3_handle_token(stateStruct, token)
-            elif token in (COp("."),COp("->")):
+            elif token in (COp("."), COp("->")):
                 self._leftexpr.args[0]._cpre3_handle_token(stateStruct, token)
             else:
                 self._leftexpr.args[0].finalize(stateStruct)
@@ -2790,13 +2802,13 @@ class CStatement(_CBaseWithOptBody):
         elif self._state == 45: # after expr + op + cast_call((expr) x)
             if self._rightexpr.args[0]._state != 5:  # something is unfinished, like a previous "->"
                 self._rightexpr.args[0]._cpre3_handle_token(stateStruct, token)
-            elif token in (COp("."),COp("->")):
+            elif token in (COp("."), COp("->")):
                 self._rightexpr.args[0]._cpre3_handle_token(stateStruct, token)
             else:
                 self._rightexpr.args[0].finalize(stateStruct)
                 self._state = 7
                 self._cpre3_handle_token(stateStruct, token) # redo handling
-        elif self._state in (50,51): # [expr + op + ] (expr)-cast
+        elif self._state in (50, 51): # [expr + op + ] (expr)-cast
             if self._state == 50: funcCall = self._leftexpr
             else: funcCall = self._rightexpr
             assert isinstance(funcCall, CFuncCall)
@@ -2804,7 +2816,7 @@ class CStatement(_CBaseWithOptBody):
                 funcCall.args = [CStatement(parent=funcCall)]
             assert len(funcCall.args) == 1
             subStatement = funcCall.args[0]
-            if subStatement._state != 0 and isinstance(token, COp) and token not in (COp("."),COp("->")):
+            if subStatement._state != 0 and isinstance(token, COp) and token not in (COp("."), COp("->")):
                 subStatement.finalize(stateStruct, addToContent=False)
                 if self._state == 50: self._state = 5
                 else: self._state = 7
@@ -2826,7 +2838,7 @@ class CStatement(_CBaseWithOptBody):
             self._state = 5
             return
 
-        if self._state in (50,51):  # after [expr + op +] (expr)-cast
+        if self._state in (50, 51):  # after [expr + op +] (expr)-cast
             if self._state == 50:
                 funcCall = self._leftexpr
             else:
@@ -2846,7 +2858,7 @@ class CStatement(_CBaseWithOptBody):
                 # Do not directly go to state 5/7. Maybe a "->" follows.
             return
 
-        if self._state in (5,7): # after expr or expr + op + expr
+        if self._state in (5, 7): # after expr or expr + op + expr
             if self._state == 5:
                 ref = self._leftexpr
             else:
@@ -2869,13 +2881,13 @@ class CStatement(_CBaseWithOptBody):
             funcCall.finalize(stateStruct)
             return
 
-        if self._state in (8,9): # right-to-left chain
+        if self._state in (8, 9): # right-to-left chain
             self._rightexpr._cpre3_parse_brackets(stateStruct, openingBracketToken, input_iter)
             if self._rightexpr._state == 5:
                 self._state = 9
             return
 
-        if self._state in (40,45): # after .. cast_call + expr
+        if self._state in (40, 45): # after .. cast_call + expr
             if self._state == 40:
                 ref = self._leftexpr
             else:
@@ -2969,7 +2981,7 @@ class CStatement(_CBaseWithOptBody):
                     return v.arrayOf
                 else:
                     assert False, "invalid pointer deref type %r" % v
-            elif self._op.content in ("+","-","++","--","~"):  # OpPrefixFuncs
+            elif self._op.content in ("+", "-", "++", "--", "~"):  # OpPrefixFuncs
                 return v
             else:
                 assert False, "invalid prefix op %r" % self._op
@@ -2988,15 +3000,15 @@ class CStatement(_CBaseWithOptBody):
         # see OpBinFuncs
         if self._op.content == ",":
             return v2
-        elif self._op.content in ("==","!=","<","<=",">",">="):
+        elif self._op.content in ("==", "!=", "<", "<=", ">", ">="):
             return CBuiltinType(("char",))  # 0 or 1, not sure
         elif self._op.content in ("&&","||"):
             return CBuiltinType(("char",))  # 0 or 1, not sure
-        elif self._op.content in ("<<",">>","<<=",">>="):  # compare
+        elif self._op.content in ("<<", ">>", "<<=", ">>="):  # compare
             return v1
-        elif self._op.content in ("=","*=","-=","+=","/=","%=","&=","^=","|="):  # assign
+        elif self._op.content in ("=", "*=", "-=", "+=", "/=", "%=", "&=", "^=", "|="):  # assign
             return v1
-        elif self._op.content in ("+","-","*","/","&","^","|","%"):
+        elif self._op.content in ("+", "-", "*", "/", "&", "^", "|", "%"):
             return getCommonValueType(stateStruct, v1, v2)
         else:
             assert False, "invalid bin op %r" % self._op
@@ -3014,7 +3026,7 @@ class CStatement(_CBaseWithOptBody):
         else:
             t = self._leftexpr
         if self._op is not None:
-            if self._op.content in ("*","&"):
+            if self._op.content in ("*", "&"):
                 t = CPointerType(t)
             else:
                 raise Exception("postfix op " + str(self._op) + " unknown for pointer type " + str(self._leftexpr))
@@ -3118,7 +3130,7 @@ def cpre3_parse_enum(stateStruct, parentCObj, input_iter):
             else:
                 stateStruct.error("cpre3 parse enum: unexpected op '=' after " + str(curCObj) + " in state " + str(state))
         elif token == COp(","):
-            if state in (1,2):
+            if state in (1, 2):
                 if state == 2:
                     valueStmnt.finalize(stateStruct, addToContent=False)
                     curCObj.value = valueStmnt.getConstValue(stateStruct)
@@ -3317,7 +3329,7 @@ def cpre3_parse_typedef(stateStruct, curCObj, input_iter):
                     state = 11
             elif isinstance(token, CSemicolon):
                 if typeObj is not None and not typeObj._finalized:
-                    typeObj.finalize(stateStruct, addToContent = typeObj.body is not None)
+                    typeObj.finalize(stateStruct, addToContent=typeObj.body is not None)
                 curCObj.finalize(stateStruct)
                 return
             else:
@@ -3358,7 +3370,7 @@ def _getLastCBody(base):
                 base = last.elsePart
             else:
                 base = last
-        elif isinstance(last, (CForStatement,CWhileStatement)):
+        elif isinstance(last, (CForStatement, CWhileStatement)):
             base = last
         else:
             break
@@ -3422,7 +3434,7 @@ class CIfStatement(_CControlStructure):
     elsePart = None
 class CElseStatement(_CControlStructure):
     Keyword = "else"
-    def finalize(self, stateStruct, addToContent = False):
+    def finalize(self, stateStruct, addToContent=False):
         if self._finalized:
             stateStruct.error("internal error: " + str(self) + " finalized twice")
             return
@@ -3638,7 +3650,7 @@ def cpre3_parse_single_next_statement(stateStruct, parentCObj, input_iter):
         elif curCObj is None and isinstance(token, CIdentifier) and token.content in CControlStructures:
             curCObj = CControlStructures[token.content](parent=parentCObj)
             curCObj.defPos = stateStruct.curPosAsStr()
-            if isinstance(curCObj, (CElseStatement,CDoStatement)):
+            if isinstance(curCObj, (CElseStatement, CDoStatement)):
                 curCObj._bracketlevel = list(parentCObj._bracketlevel)
                 lasttoken = cpre3_parse_single_next_statement(stateStruct, curCObj, input_iter)
                 # We finalize in any way, also for 'do'. We don't do any semantic checks here
@@ -3726,7 +3738,7 @@ def cpre3_parse_body(stateStruct, parentCObj, input_iter):
                     curCObj = _CBaseWithOptBody(parent=parentCObj)
                 CControlStructures[token.content].overtake(curCObj)
                 curCObj.defPos = stateStruct.curPosAsStr()
-                if isinstance(curCObj, (CElseStatement,CDoStatement)):
+                if isinstance(curCObj, (CElseStatement, CDoStatement)):
                     curCObj._bracketlevel = list(parentCObj._bracketlevel)
                     lasttoken = cpre3_parse_single_next_statement(stateStruct, curCObj, input_iter)
                     # We finalize in any way, also for 'do'. We don't do any semantic checks here
@@ -3811,7 +3823,7 @@ def cpre3_parse_body(stateStruct, parentCObj, input_iter):
                     stateStruct.error("cpre3 parse after " + str(curCObj) + ": didn't expected op '" + token.content + "'")
             else:
                 if token.content == "*":
-                    if isinstance(curCObj, (CStruct,CUnion,CEnum)):
+                    if isinstance(curCObj, (CStruct, CUnion, CEnum)):
                         curCObj.finalize(stateStruct)
                         oldObj = curCObj
                         curCObj = CVarDecl(parent=parentCObj)
@@ -3958,7 +3970,7 @@ def cpre3_parse_body(stateStruct, parentCObj, input_iter):
             if not curCObj._finalized:
                 curCObj.finalize(stateStruct)
             curCObj = _CBaseWithOptBody(parent=parentCObj)
-        elif isinstance(token, (CStr,CChar)):
+        elif isinstance(token, (CStr, CChar)):
             if isinstance(curCObj, CStatement):
                 curCObj._cpre3_handle_token(stateStruct, token)
             elif isinstance(curCObj.body, CStatement):
@@ -4011,8 +4023,8 @@ def parse_code(source_code, state=None):
         cpre3_parse(state, tokens)
     except Exception as e:
         state.error("internal exception: %r" % e)
-        print "parsing errors:"
-        for s in state._errors: print s
+        print("parsing errors:")
+        for s in state._errors: print(s)
         raise
 
     return state
@@ -4038,7 +4050,7 @@ def demo_parse_file(filename):
 
     cpre3_parse(state, tokens)
     if state._errors:
-        print "parse errors:"
+        print("parse errors:")
         pprint(state._errors)
 
     return state, token_list
@@ -4054,7 +4066,7 @@ class CWrapValue(CType):
         self.value = value
         self.decl = decl
         self.name = name
-        for k,v in kwattr.iteritems():
+        for k, v in kwattr.iteritems():
             setattr(self, k, v)
     def __repr__(self):
         s = "<" + self.__class__.__name__ + " "
@@ -4124,7 +4136,7 @@ def isVoidPtrType(t):
     return False
 
 def isValueType(t):
-    if isinstance(t, (CBuiltinType,CStdIntType)): return True
+    if isinstance(t, (CBuiltinType, CStdIntType)): return True
     from inspect import isclass
     if isclass(t):
         for c in State.StdIntTypes.values():
