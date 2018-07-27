@@ -2,13 +2,14 @@
 # by Albert Zeyer, 2011
 # code under BSD 2-Clause License
 
-import cparser
 import ctypes
 import sys
 import six
 if sys.version_info.major == 2:
+    import cparser
     from cparser_utils import *
 else:
+    from . import cparser
     from .cparser_utils import *
 
 class CStateDictWrapper:
