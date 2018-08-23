@@ -602,18 +602,16 @@ class State(object):
         print(self.curPosAsStr() + ": " + " ".join(map(str, args)))
 
     def findIncludeFullFilename(self, filename, local):
+        import os.path
+        folder = ""
         if local:
-            dir = ""
-            if filename[0] != "/":
+            folder = ""
+            if not os.path.isabs(filename):
                 if self._preprocessIncludeLevel and self._preprocessIncludeLevel[-1][0]:
-                    import os.path
-                    dir = os.path.dirname(self._preprocessIncludeLevel[-1][0])
-                if not dir: dir = "."
-                dir += "/"
-        else:
-            dir = ""
-
-        fullfilename = dir + filename
+                    folder = os.path.dirname(self._preprocessIncludeLevel[-1][0])
+                if not folder:
+                    folder = "."
+        fullfilename = os.path.join(folder, filename)
         return fullfilename
 
     def readLocalInclude(self, filename):
@@ -621,7 +619,7 @@ class State(object):
 
         try:
             import codecs
-            f = codecs.open(fullfilename, "r", "utf-8")
+            f = codecs.open(fullfilename, "r")
         except Exception as e:
             self.error("cannot open local include-file '" + filename + "': " + str(e))
             return "", None
